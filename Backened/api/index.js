@@ -20,36 +20,25 @@ dotenv.config();
 const app = express();
 
 // 1. MIDDLEWARES
-app.use(express.json()); // Sabse pehle JSON parser
-app.use(express.urlencoded({ extended: true }));
-
 const allowedOrigins = [
   "https://mt-softwarehouse-1htp.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000"
 ];
 
-// ✅ VERCEL PRODUCTION-READY NATIVE CORS MIDDLEWARE
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
-  // Agar current origin allowed list mein hai ya '.vercel.app' par khatam ho raha hai
-  if (!origin) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  } else if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-Token, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  // ✅ Pre-flight OPTIONS request ko Express function ke shuru mein hi handle karke return kar dein
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  next();
-});
+app.use(express.json()); // Sabse pehle JSON parser
+app.use(express.urlencoded({ extended: true }));
 
 // 3. ROUTES (Don't worry, matching with and without /api handled)
 app.use("/api/tasks", taskRoutes);
