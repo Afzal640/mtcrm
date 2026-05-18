@@ -22,38 +22,36 @@ const app = express();
 // 1. MIDDLEWARES
 app.use(express.json()); // Sabse pehle JSON parser
 app.use(express.urlencoded({ extended: true }));
+
 const allowedOrigins = [
   "https://mt-softwarehouse-1htp.vercel.app",
-  "http://localhost:5173", // Local development
-  "http://localhost:3000"  // Alternative local development port
+  "http://localhost:5173",
+  "http://localhost:3000"
 ];
 
+// ✅ VERCEL PRODUCTION-READY NATIVE CORS MIDDLEWARE
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow local development and any Vercel deployment
-    const isAllowed = allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app');
-    
-    if (!isAllowed) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
-}));
+  // Agar current origin allowed list mein hai ya '.vercel.app' par khatam ho raha hai
+  if (!origin) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  } else if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
 
-// Pre-flight requests ko handle karne ke liye
-app.options("*", cors());
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-Token, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
+  // ✅ Pre-flight OPTIONS request ko Express function ke shuru mein hi handle karke return kar dein
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 
-// 3. ROUTES
-
+// 3. ROUTES (Don't worry, matching with and without /api handled)
 app.use("/api/tasks", taskRoutes);
 app.use("/tasks", taskRoutes);
 
@@ -99,10 +97,10 @@ app.get("/", (req, res) => {
   });
 });
 
-// 5. ERROR HANDLING (Ye zaroor add karein taake crash na ho)
+// 5. ERROR HANDLING
 app.use((err, req, res, next) => {
   console.error("Global Error:", err.stack);
-  res.status(500).json({ success: false, message: "Something went wrong internaly!" });
+  res.status(500).json({ success: false, message: "Something went wrong internally!" });
 });
 
 export default app;
