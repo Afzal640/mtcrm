@@ -1,8 +1,11 @@
 {
   "name": "mt-management-root",
   "version": "1.0.0",
+  "description": "SaaS Sales CRM Backend",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node Backened/server.js"
+    "start": "node server/server.js",
+    "build": "echo 'No build step required for backend'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.2",
